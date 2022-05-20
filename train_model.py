@@ -1,10 +1,19 @@
 
+import argparse
+
+parser = argparse.ArgumentParser(description="Train electricity wiring recognition model")
+parser.add_argument("-o", dest='outf', type=str, nargs='+', help='Weights output file (prefix)', required=True)
+parser.add_argument("-n", dest='noninteract')
+
+
+
 import tensorflow as tf
 from tensorflow import keras as kr
 from tensorflow.keras import layers
 import os
 import matplotlib.pyplot as plt
 
+args = parser.parse_args();
 
 
 batch_size = 32
@@ -13,7 +22,7 @@ img_width = 960
 
 
 
-interactive = os.environ.get("NO_INTERACT") == None
+interactive = (not hasattr(args, "noninteract")) or (os.environ.get("NO_INTERACT") == None)
 #plt.rcParams['axes.facecolor'] = 'black'
 plt.style.use('dark_background')
 
@@ -104,7 +113,10 @@ data_augmentation = kr.Sequential(
 
 
 
-print("\nModel summary:\n%s\n" % (model.summary))
+print("\nModel summary:\n"); model.summary(); print("\n")
 
+outf = args.outf[0];
+print("Saving weights into \"%s\"" % (outf))
+model.save_weights(outf)
 #class_names[i]
-print("Successfully terminated")
+print("Completed without errors.")
