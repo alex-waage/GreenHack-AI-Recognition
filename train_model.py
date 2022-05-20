@@ -4,7 +4,7 @@ from tensorflow import keras as kr
 import os
 import matplotlib.pyplot as plt
 
-df_modelpath = "./Pictures-mast etalons/";
+df_modelpath = "./Pictures_sorted/";
 
 print("Getting model path   -- from PIC_PATH environ, or from  \"" + df_modelpath + "\" by default")
 fld = os.environ.get("PIC_PATH") or df_modelpath;
