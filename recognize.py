@@ -6,6 +6,7 @@ import os
 def crash(e, code):
     print(e)
     exit(code)
+    
 #Load the model
 mpath = os.environ["MODEL_PATH"] or "model_wiring.h5";
 
