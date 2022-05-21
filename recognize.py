@@ -44,8 +44,8 @@ try:
     model = tf.keras.models.load_model(mpath);
     class_names = open(mpath + "/class_names.list").read().splitlines()
     #model = tf.savedmodel.load(mpath);
-except:
-    crash("ERROR: Model could not be loaded from \"%s\"" % (mpath));
+except BaseException as e:
+    crash("ERROR: Model could not be loaded from \"%s\"\nException: %s" % (mpath, str(e)));
 
 img = tf.keras.utils.load_img(
     impath, target_size=(img_height, img_width)

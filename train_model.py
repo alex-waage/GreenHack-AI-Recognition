@@ -119,7 +119,11 @@ def train_model():
         validation_data=val_ds,
         epochs=epochs
     )
-    open(outfile + "/class_names.list", "w").write('\n'.join(class_names));
+    ### NO "/" is right here
+    modelpth = outfile + "/class_names.list"
+    print("Saving model to: \"%s\"" % (modelpth))
+    os.makedirs(os.path.split(modelpth)[0])
+    open(modelpth, "w").write('\n'.join(class_names));
 
     return model
 
