@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AITEST</title>
+</head>
+
+
+<body>
+    <label for="testImage">Choose a profile picture:</label>
+    <input type="file" id="testImage" name="testImage" accept="image/jpeg">
+    <div id="result"></div>
+
+    <script>
+        const inputElement = document.getElementById("testImage");
+        inputElement.addEventListener("change", () => {
+            const testFile = inputElement.files[0];
+    
+            if (testFile) {
+                console.log("mame");
+
+                const data = new FormData()
+                data.append('file', testFile)
+
+                fetch('/getInfo', {
+                    method: 'POST',
+                    body: data
+                }).then(
+                    response => response.text()
+                )
+                .then((data) => {
+                    const tag = document.createElement("p");
+                    const text = document.createTextNode(data);
+                    tag.appendChild(text);
+                    const element = document.getElementById("result");
+                    element.appendChild(tag);
+                })
+            }
+        });
+    </script>
+</body>
+
+</html>
