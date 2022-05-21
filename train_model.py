@@ -1,122 +1,340 @@
-
-import argparse
-
-parser = argparse.ArgumentParser(description="Train electricity wiring recognition model")
-parser.add_argument("-o", dest='outf', type=str, nargs='+', help='Weights output file (prefix)', required=True)
-parser.add_argument("-n", dest='noninteract')
-
-
-
-import tensorflow as tf
-from tensorflow import keras as kr
-from tensorflow.keras import layers
-import os
 import matplotlib.pyplot as plt
+import numpy as np
+import os
+import PIL
+import tensorflow as tf
 
-args = parser.parse_args();
+from tensorflow import keras
+from tensorflow.keras import layers
+from tensorflow.keras.models import Sequential
 
+from tkinter import *
+from PIL import ImageTk, Image
+from tkinter import filedialog
+import os
+import pathlib
 
-batch_size = 32
-img_height = 1280
-img_width = 960
+x = ""
 
+root = Tk()
+root.resizable(width=True, height=True)
+root.eval('tk::PlaceWindow . center')
 
+def openfn():
+    filename = filedialog.askopenfilename(title='open')
+    return filename
+def open_img():
+    #x = openfn()
+    #img = Image.open(x)
+    #img = img.resize((250, 250), Image.ANTIALIAS)
+    #img = ImageTk.PhotoImage(img)
+    #panel = Label(root, image=img)
+    #panel.image = img
+    #panel.pack()
 
-interactive = (not hasattr(args, "noninteract")) or (os.environ.get("NO_INTERACT") == None)
-#plt.rcParams['axes.facecolor'] = 'black'
-plt.style.use('dark_background')
+    #T.delete(1.0, END)
+    #T.tag_configure("center", justify='center')
+    #T.insert("1.0", "Please Wait.")
+    #T.tag_add("center", "1.0", "end")
 
-df_modelpath = "./Pictures_sorted/";
+    root.update()
 
-print("Getting model path   -- from PIC_PATH environ, or from  \"" + df_modelpath + "\" by default")
-fld = os.environ.get("PIC_PATH") or df_modelpath;
-print("Training model")
+    data_dir = pathlib.Path("./input")
 
-dataset= tf.keras.utils.image_dataset_from_directory(
-    fld,
-    validation_split=0.2,
-    subset="training",
-    seed=123,
-    image_size=(img_height, img_width),
-    batch_size=batch_size
-);
+    batch_size = 32
+    img_height = 180
+    img_width = 180
 
-#Validation dataset
-validation_ds = tf.keras.utils.image_dataset_from_directory(
-    fld,
-    validation_split=0.2,
-    subset="validation",
-    seed=123,
-    image_size=(img_height, img_width),
-    batch_size=batch_size
-)
-
-
-class_nms = dataset.class_names
-print(f"class_nms: {class_nms}")
-class_cnt = len(class_nms);
-
-#plt.gca().set_facecolor([0.0, 0.2, 0.0])
-
-if interactive:
-    plt.figure(figsize=(10, 10))
-    for images, labels in dataset.take(1):
-        for i in range(class_cnt):
-            print(f"Showing image {i}")
-            ax = plt.subplot(3, 3, i + 1)
-            plt.title(class_nms[labels[i]])
-            plt.axis("off")
-            
-            plt.imshow(images[i].numpy().astype("uint8"))
-        
-plt.show()
-
-model = kr.Sequential([
-    layers.Rescaling(1./1024, input_shape=(img_height, img_width, 3)),
-    layers.Conv2D(16, 3, padding='same', activation='relu'),
-    layers.MaxPooling2D(),
-    layers.Conv2D(32, 3, padding='same', activation='relu'),
-    layers.MaxPooling2D(),
-    layers.Conv2D(64, 3, padding='same', activation='relu'),
-    layers.MaxPooling2D(),
-    layers.Flatten(),
-    #layers.Dense(128, activation='relu'),
-    #layers.Dense(class_cnt)
-])
-
-print("Compiling model...")
-model.compile(optimizer='adam',
-    #loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-    loss='mean_squared_error'
-    #metrics=['accuracy']
-)
-print("Training model...")
-
-history = model.fit(
-    dataset,
-    validation_data=None,
-    epochs=int(os.environ.get("TRAIN_EPOCHS") or 9),
-    #input_shape=(img_height, img_width, 3)
+    train_ds = tf.keras.utils.image_dataset_from_directory(
+        data_dir,
+        validation_split=0.2,
+        subset="training",
+        seed=123,
+        image_size=(img_height, img_width),
+        batch_size=batch_size
     )
-#history = model.fit(
-    #dataset,
-    #validation_data=val_ds,
-    #epochs=epochs
-    #)
-data_augmentation = kr.Sequential(
+
+    val_ds = tf.keras.utils.image_dataset_from_directory(
+        data_dir,
+        validation_split=0.2,
+        subset="validation",
+        seed=123,
+        image_size=(img_height, img_width),
+        batch_size=batch_size
+    )
+
+    class_names = train_ds.class_names
+    print(class_names)
+
+    AUTOTUNE = tf.data.AUTOTUNE
+
+    train_ds = train_ds.cache().shuffle(1000).prefetch(buffer_size=AUTOTUNE)
+    val_ds = val_ds.cache().prefetch(buffer_size=AUTOTUNE)
+
+    normalization_layer = layers.Rescaling(1./255)
+
+    normalized_ds = train_ds.map(lambda x, y: (normalization_layer(x), y))
+    image_batch, labels_batch = next(iter(normalized_ds))
+    first_image = image_batch[0]
+    # Notice the pixel values are now in `[0,1]`.
+    print(np.min(first_image), np.max(first_image))
+
+    num_classes = len(class_names)
+
+    data_augmentation = keras.Sequential(
     [
-        layers.RandomFlip("horizontal"),
-        layers.RandomRotation(0.08),
+        layers.RandomFlip("horizontal",
+                        input_shape=(img_height,
+                                    img_width,
+                                    3)),
+        layers.RandomRotation(0.1),
         layers.RandomZoom(0.1),
-  ]
-)
+    ]
+    )
+
+    model = Sequential([
+        data_augmentation,
+        layers.Rescaling(1./255),
+        layers.Conv2D(16, 3, padding='same', activation='relu'),
+        layers.MaxPooling2D(),
+        layers.Conv2D(32, 3, padding='same', activation='relu'),
+        layers.MaxPooling2D(),
+        layers.Conv2D(64, 3, padding='same', activation='relu'),
+        layers.MaxPooling2D(),
+        layers.Dropout(0.2),
+        layers.Flatten(),
+        layers.Dense(128, activation='relu'),
+        layers.Dense(num_classes)
+    ])
+
+    model.compile(optimizer='adam',
+                loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+                metrics=['accuracy'])
+
+    model.summary()
+
+    epochs = 15
+    history = model.fit(
+    train_ds,
+    validation_data=val_ds,
+    epochs=epochs
+    )
 
 
+btn = Button(root, text='Open image', command=open_img).pack()
+print(x)
+T = Text(root, height=2, width=50)
+T.tag_configure("center", justify='center')
+T.insert("1.0", "Please import image.")
+T.tag_add("center", "1.0", "end")
+T.pack()
 
-print("\nModel summary:\n"); model.summary(); print("\n")
+root.mainloop()
 
-outf = args.outf[0];
-print("Saving weights into \"%s\"" % (outf))
-model.save_weights(outf)
-#class_names[i]
-print("Completed without errors.")
+
+# data_dir = pathlib.Path("./input")
+
+# image_count = len(list(data_dir.glob('*/*.jpg')))
+# print(image_count)
+
+# roses = list(data_dir.glob('delta_kotevni/*'))
+# PIL.Image.open(str(roses[0]))
+
+# PIL.Image.open(str(roses[1]))
+
+# tulips = list(data_dir.glob('kocka_nosny/*'))
+# PIL.Image.open(str(tulips[0]))
+
+# PIL.Image.open(str(tulips[1]))
+
+# batch_size = 32
+# img_height = 180
+# img_width = 180
+
+# train_ds = tf.keras.utils.image_dataset_from_directory(
+#   data_dir,
+#   validation_split=0.2,
+#   subset="training",
+#   seed=123,
+#   image_size=(img_height, img_width),
+#   batch_size=batch_size)
+
+# val_ds = tf.keras.utils.image_dataset_from_directory(
+#   data_dir,
+#   validation_split=0.2,
+#   subset="validation",
+#   seed=123,
+#   image_size=(img_height, img_width),
+#   batch_size=batch_size)
+
+# class_names = train_ds.class_names
+# print(class_names)
+
+# import matplotlib.pyplot as plt
+
+# # plt.figure(figsize=(10, 10))
+# # for images, labels in train_ds.take(1):
+# #   for i in range(9):
+# #     ax = plt.subplot(3, 3, i + 1)
+# #     plt.imshow(images[i].numpy().astype("uint8"))
+# #     plt.title(class_names[labels[i]])
+# #     plt.axis("off")
+
+# for image_batch, labels_batch in train_ds:
+#   print(image_batch.shape)
+#   print(labels_batch.shape)
+#   break
+
+# AUTOTUNE = tf.data.AUTOTUNE
+
+# train_ds = train_ds.cache().shuffle(1000).prefetch(buffer_size=AUTOTUNE)
+# val_ds = val_ds.cache().prefetch(buffer_size=AUTOTUNE)
+
+# normalization_layer = layers.Rescaling(1./255)
+
+# normalized_ds = train_ds.map(lambda x, y: (normalization_layer(x), y))
+# image_batch, labels_batch = next(iter(normalized_ds))
+# first_image = image_batch[0]
+# # Notice the pixel values are now in `[0,1]`.
+# print(np.min(first_image), np.max(first_image))
+
+# num_classes = len(class_names)
+
+# # #############################################################
+
+# # model = Sequential([
+# #   layers.Rescaling(1./255, input_shape=(img_height, img_width, 3)),
+# #   layers.Conv2D(16, 3, padding='same', activation='relu'),
+# #   layers.MaxPooling2D(),
+# #   layers.Conv2D(32, 3, padding='same', activation='relu'),
+# #   layers.MaxPooling2D(),
+# #   layers.Conv2D(64, 3, padding='same', activation='relu'),
+# #   layers.MaxPooling2D(),
+# #   layers.Flatten(),
+# #   layers.Dense(128, activation='relu'),
+# #   layers.Dense(num_classes)
+# # ])
+
+# # model.compile(optimizer='adam',
+# #               loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+# #               metrics=['accuracy'])
+
+# # model.summary()
+
+# # epochs=10
+# # history = model.fit(
+# #   train_ds,
+# #   validation_data=val_ds,
+# #   epochs=epochs
+# # )
+
+# # acc = history.history['accuracy']
+# # val_acc = history.history['val_accuracy']
+
+# # loss = history.history['loss']
+# # val_loss = history.history['val_loss']
+
+# # epochs_range = range(epochs)
+
+# # #############################################################
+
+# # plt.figure(figsize=(8, 8))
+# # plt.subplot(1, 2, 1)
+# # plt.plot(epochs_range, acc, label='Training Accuracy')
+# # plt.plot(epochs_range, val_acc, label='Validation Accuracy')
+# # plt.legend(loc='lower right')
+# # plt.title('Training and Validation Accuracy')
+
+# # plt.subplot(1, 2, 2)
+# # plt.plot(epochs_range, loss, label='Training Loss')
+# # plt.plot(epochs_range, val_loss, label='Validation Loss')
+# # plt.legend(loc='upper right')
+# # plt.title('Training and Validation Loss')
+# # plt.show()
+
+# data_augmentation = keras.Sequential(
+#   [
+#     layers.RandomFlip("horizontal",
+#                       input_shape=(img_height,
+#                                   img_width,
+#                                   3)),
+#     layers.RandomRotation(0.1),
+#     layers.RandomZoom(0.1),
+#   ]
+# )
+
+# # plt.figure(figsize=(10, 10))
+# # for images, _ in train_ds.take(1):
+# #   for i in range(9):
+# #     augmented_images = data_augmentation(images)
+# #     ax = plt.subplot(3, 3, i + 1)
+# #     plt.imshow(augmented_images[0].numpy().astype("uint8"))
+# #     plt.axis("off")
+
+# model = Sequential([
+#   data_augmentation,
+#   layers.Rescaling(1./255),
+#   layers.Conv2D(16, 3, padding='same', activation='relu'),
+#   layers.MaxPooling2D(),
+#   layers.Conv2D(32, 3, padding='same', activation='relu'),
+#   layers.MaxPooling2D(),
+#   layers.Conv2D(64, 3, padding='same', activation='relu'),
+#   layers.MaxPooling2D(),
+#   layers.Dropout(0.2),
+#   layers.Flatten(),
+#   layers.Dense(128, activation='relu'),
+#   layers.Dense(num_classes)
+# ])
+
+# model.compile(optimizer='adam',
+#               loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+#               metrics=['accuracy'])
+
+# model.summary()
+
+# epochs = 15
+# history = model.fit(
+#   train_ds,
+#   validation_data=val_ds,
+#   epochs=epochs
+# )
+
+# acc = history.history['accuracy']
+# val_acc = history.history['val_accuracy']
+
+# loss = history.history['loss']
+# val_loss = history.history['val_loss']
+
+# epochs_range = range(epochs)
+
+# # plt.figure(figsize=(8, 8))
+# # plt.subplot(1, 2, 1)
+# # plt.plot(epochs_range, acc, label='Training Accuracy')
+# # plt.plot(epochs_range, val_acc, label='Validation Accuracy')
+# # plt.legend(loc='lower right')
+# # plt.title('Training and Validation Accuracy')
+
+# # plt.subplot(1, 2, 2)
+# # plt.plot(epochs_range, loss, label='Training Loss')
+# # plt.plot(epochs_range, val_loss, label='Validation Loss')
+# # plt.legend(loc='upper right')
+# # plt.title('Training and Validation Loss')
+# # plt.show()
+
+# # sunflower_url = "./input_test_prediction/test_1.jpg"
+# # sunflower_path = tf.keras.utils.get_file('stozar', origin=sunflower_url)
+
+# img = tf.keras.utils.load_img(
+#     "./input_test_prediction/test_1.jpg", target_size=(img_height, img_width)
+#     # "./input/kocka_kotevni/Kocka_KOTEVNI_1.jpg", target_size=(img_height, img_width)
+# )
+# img_array = tf.keras.utils.img_to_array(img)
+# img_array = tf.expand_dims(img_array, 0) # Create a batch
+
+# predictions = model.predict(img_array)
+# score = tf.nn.softmax(predictions[0])
+
+# print(
+#     "This image most likely belongs to {} with a {:.2f} percent confidence."
+#     .format(class_names[np.argmax(score)], 100 * np.max(score))
+# )
