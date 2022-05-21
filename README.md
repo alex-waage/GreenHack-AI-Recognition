@@ -5,8 +5,8 @@ It was exciting and little bit stressfull 36 hours, but in the end we really enj
 Our team has 3 person's from the beginning, but after some research we found out that we will need little help, so at the end team has 5 members.
 
 ### Our output has 3 parts below:
-* Program
-* Presentation
+* [Program](https://github.com/alex-waage/GreenHack-AI-Recognition/tree/main/app)
+* [Presentation](https://github.com/alex-waage/GreenHack-AI-Recognition/tree/main/presentation-video)
 * Video
 
 ### Member of team
