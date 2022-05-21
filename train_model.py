@@ -15,15 +15,14 @@ import os
 import pathlib
 
 x = ""
+data_dir = "Pictures_sorted"
 
-root = Tk()
-root.resizable(width=True, height=True)
-root.eval('tk::PlaceWindow . center')
+#root = Tk()
+#root.resizable(width=True, height=True)
+#root.eval('tk::PlaceWindow . center')
 
-def openfn():
-    filename = filedialog.askopenfilename(title='open')
-    return filename
-def open_img():
+
+def train_model():
     #x = openfn()
     #img = Image.open(x)
     #img = img.resize((250, 250), Image.ANTIALIAS)
@@ -37,9 +36,6 @@ def open_img():
     #T.insert("1.0", "Please Wait.")
     #T.tag_add("center", "1.0", "end")
 
-    root.update()
-
-    data_dir = pathlib.Path("./input")
 
     batch_size = 32
     img_height = 180
@@ -115,21 +111,18 @@ def open_img():
 
     epochs = 15
     history = model.fit(
-    train_ds,
-    validation_data=val_ds,
-    epochs=epochs
+        train_ds,
+        validation_data=val_ds,
+        epochs=epochs
     )
+    return True
 
 
-btn = Button(root, text='Open image', command=open_img).pack()
-print(x)
-T = Text(root, height=2, width=50)
-T.tag_configure("center", justify='center')
-T.insert("1.0", "Please import image.")
-T.tag_add("center", "1.0", "end")
-T.pack()
 
-root.mainloop()
+if train_model() == True:
+    print("Successfully trained")
+else:
+    print("ERROR: Cannot train model due to unknown error")
 
 
 # data_dir = pathlib.Path("./input")

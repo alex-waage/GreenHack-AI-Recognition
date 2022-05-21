@@ -5,11 +5,20 @@ import os
 import sys
 import tkinter as tk
 
-if len(sys.argv) <= 1 or sys.argv[1] == "--help":
+def openfn():
+    filename = filedialog.askopenfilename(title='open')
+    return filename
+
+
+if len(sys.argv) > 1 and sys.argv[1] == "--help":
     print("recognize.py  [image]")
     exit(1)
 
 usegui = len(sys.argv) <= 1
+try:
+    impath = sys.argv[1]
+except IndexError:
+    impath = openfn() if usegui else input("Image name")
 def crash(e, code = 5):
     if usegui:
         greeting = tk.Label(text="Hello, Tkinter")
@@ -30,7 +39,7 @@ except:
 crash("ERROR: Model could not be loaded")
 
 img = tf.keras.utils.load_img(
-    sys.argv[1], target_size=(img_height, img_width)
+    impath, target_size=(img_height, img_width)
     # "./input/kocka_kotevni/Kocka_KOTEVNI_1.jpg", target_size=(img_height, img_width)
 )
 img_array = tf.keras.utils.img_to_array(img)
