@@ -8,11 +8,20 @@ from tensorflow import keras
 from tensorflow.keras import layers
 from tensorflow.keras.models import Sequential
 
-from tkinter import *
-from PIL import ImageTk, Image
-from tkinter import filedialog
 import os
 import pathlib
+import sys
+
+
+batch_size = 32
+img_height = 180
+img_width = 180
+
+if len(sys.argv) <= 1 or sys.argv[1] == "--help":
+    print("train_model.py  [output path]")
+    exit(1)
+
+outfile = sys.argv[1]
 
 x = ""
 data_dir = "Pictures_sorted"
@@ -35,11 +44,6 @@ def train_model():
     #T.tag_configure("center", justify='center')
     #T.insert("1.0", "Please Wait.")
     #T.tag_add("center", "1.0", "end")
-
-
-    batch_size = 32
-    img_height = 180
-    img_width = 180
 
     train_ds = tf.keras.utils.image_dataset_from_directory(
         data_dir,
@@ -115,15 +119,19 @@ def train_model():
         validation_data=val_ds,
         epochs=epochs
     )
-    return True
+    open(outfile + "/class_names.list", "w").write('\n'.join(class_names));
+
+    return model
 
 
 
-if train_model() == True:
-    print("Successfully trained")
-else:
-    print("ERROR: Cannot train model due to unknown error")
+#if train_model() == True:
+    #print("Successfully trained")
+#else:
+    #print("ERROR: Cannot train model due to unknown error")
 
+train_model().save(outfile)
+print("Successfully trained")
 
 # data_dir = pathlib.Path("./input")
 

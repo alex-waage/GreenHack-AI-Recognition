@@ -5,6 +5,15 @@ import os
 import sys
 import tkinter as tk
 
+from tkinter import *
+from PIL import ImageTk, Image
+from tkinter import filedialog
+import numpy as np
+
+batch_size = 32
+img_height = 180
+img_width = 180
+
 def openfn():
     filename = filedialog.askopenfilename(title='open')
     return filename
@@ -21,8 +30,9 @@ except IndexError:
     impath = openfn() if usegui else input("Image name")
 def crash(e, code = 5):
     if usegui:
+        print(e)
         greeting = tk.Label(text="Hello, Tkinter")
-        tk.pack()
+        tk.Pack()
     else:
         print(e)
     exit(code)
@@ -32,11 +42,10 @@ mpath = os.environ.get("MODEL_PATH") or "models/default";
 
 try:
     model = tf.keras.models.load_model(mpath);
+    class_names = open(mpath + "/class_names.list").read().splitlines()
     #model = tf.savedmodel.load(mpath);
 except:
     crash("ERROR: Model could not be loaded from \"%s\"" % (mpath));
-
-crash("ERROR: Model could not be loaded")
 
 img = tf.keras.utils.load_img(
     impath, target_size=(img_height, img_width)
@@ -50,10 +59,10 @@ score = tf.nn.softmax(predictions[0])
 
 typeAndChance = "This image most likely belongs to {} with a {:.2f} percent confidence.".format(class_names[np.argmax(score)], 100 * np.max(score))
 
-T.delete(1.0, END)
-T.tag_configure("center", justify='center')
-T.insert("1.0", typeAndChance)
-T.tag_add("center", "1.0", "end")
+#tk.delete(1.0, END)
+#tk.tag_configure("center", justify='center')
+#tk.insert("1.0", typeAndChance)
+#tk.tag_add("center", "1.0", "end")
 print(
     "This image most likely belongs to {} with a {:.2f} percent confidence."
     .format(class_names[np.argmax(score)], 100 * np.max(score))
